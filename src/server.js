@@ -12,9 +12,21 @@ const host = process.env.HOST || "localhost";
 const port = number.parseInt(process.env.PORT || "1234");
 const cors = process.env.NODE_ENV !== "production" ? { "Access-Control-Allow-Origin": "*" } : {};
 
+const checkPassword = (secret, response) => {
+  if (secret !== settings.secret) {
+    response.writeHead(400, { "Content-Type": "application/json", ...cors });
+    response.end(JSON.stringify({ error: "Bad secret" }));
+    return false;
+  } else {
+    return true;
+  }
+};
+
 const server = http.createServer(async (request, response) => {
   const parsedUrl = url.parse(request?.url ?? "", true);
-  if (request.method === "GET" && request.url?.startsWith("/list")) {
+  const secret = parsedUrl.query.secret || "";
+
+  if (request.method === "GET" && request.url?.startsWith("/list") && checkPassword(secret, response)) {
     const rawPrefix = parsedUrl.query.prefix || "";
     if (!rawPrefix) {
       response.writeHead(400, { "Content-Type": "application/json", ...cors });
@@ -22,14 +34,8 @@ const server = http.createServer(async (request, response) => {
     } else {
       try {
         const docs = await getPersistence().provider.getAllDocNames();
-
-        const secret = parsedUrl.query.secret || "";
-
         const prefix = `${rawPrefix}:`;
-
-        const cleanDocs =
-          rawPrefix === "*" && secret === settings.secret ? docs : docs.filter((name) => name.includes(prefix));
-
+        const cleanDocs = rawPrefix === "*" ? docs : docs.filter((name) => name.includes(prefix));
         response.writeHead(200, { "Content-Type": "application/json", ...cors });
         response.end(JSON.stringify(cleanDocs));
       } catch (error) {
@@ -38,7 +44,7 @@ const server = http.createServer(async (request, response) => {
         response.end(JSON.stringify({ error: "Error retrieving document names" }));
       }
     }
-  } else if (request.method === "GET" && request.url?.startsWith("/del")) {
+  } else if (request.method === "GET" && request.url?.startsWith("/del") && checkPassword(secret, response)) {
     const docName = parsedUrl.query.doc || "";
     if (!docName) {
       response.writeHead(400, { "Content-Type": "application/json", ...cors });
