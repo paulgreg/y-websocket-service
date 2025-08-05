@@ -4,9 +4,10 @@
   "description": "Backend for y-websocket",
   "type": "module",
   "sideEffects": false,
+  "main": "./src/server.js",
   "scripts": {
-    "dev": "HOST=127.0.0.1 PORT=6010 YPERSISTENCE=./data npm run start",
-    "start": "node ./src/server.js",
+    "dev": "HOST=127.0.0.1 PORT=6010 YPERSISTENCE=./data node .",
+    "start": "NODE_ENV=production node .",
     "dist": "rm -rf dist && rollup -c && tsc",
     "lint": "standard && tsc",
     "test": "npm run lint",

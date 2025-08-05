@@ -9,28 +9,43 @@ import url from "url";
 const wss = new WebSocket.Server({ noServer: true });
 const host = process.env.HOST || "localhost";
 const port = number.parseInt(process.env.PORT || "1234");
+const cors = process.env.NODE_ENV !== "production" ? { "Access-Control-Allow-Origin": "*" } : {};
 
 const server = http.createServer(async (request, response) => {
+  const parsedUrl = url.parse(request?.url ?? "", true);
   if (request.method === "GET" && request.url?.startsWith("/list")) {
-    const parsedUrl = url.parse(request.url, true);
     const rawPrefix = parsedUrl.query.prefix || "";
     if (!rawPrefix) {
-      response.writeHead(400, { "Content-Type": "application/json" });
+      response.writeHead(400, { "Content-Type": "application/json", ...cors });
       response.end(JSON.stringify({ error: "Missing prefix parameter" }));
     } else {
-      const persistence = getPersistence();
-      if (persistence && typeof persistence.provider.getAllDocNames === "function") {
-        try {
-          const docNames = await persistence.provider.getAllDocNames();
-          const prefix = `${rawPrefix}::`;
-          const documents = docNames.filter((name) => name.includes(prefix)).map((name) => name.split(prefix)[1]);
+      try {
+        const docs = await getPersistence().provider.getAllDocNames();
+        const prefix = `${rawPrefix}:`;
+        const cleanDocs = docs.filter((name) => name.includes(prefix));
 
-          response.writeHead(200, { "Content-Type": "application/json" });
-          response.end(JSON.stringify({ documents }));
-        } catch (error) {
-          response.writeHead(500, { "Content-Type": "application/json" });
-          response.end(JSON.stringify({ error: "Error retrieving document names" }));
-        }
+        response.writeHead(200, { "Content-Type": "application/json", ...cors });
+        response.end(JSON.stringify(cleanDocs));
+      } catch (error) {
+        console.warn(error);
+        response.writeHead(500, { "Content-Type": "application/json", ...cors });
+        response.end(JSON.stringify({ error: "Error retrieving document names" }));
+      }
+    }
+  } else if (request.method === "GET" && request.url?.startsWith("/del")) {
+    const docName = parsedUrl.query.doc || "";
+    if (!docName) {
+      response.writeHead(400, { "Content-Type": "application/json", ...cors });
+      response.end(JSON.stringify({ error: "Missing doc parameter" }));
+    } else {
+      try {
+        await getPersistence().provider.clearDocument(docName);
+        response.writeHead(200, { "Content-Type": "application/json", ...cors });
+        response.end(JSON.stringify({ status: "deleted" }));
+      } catch (error) {
+        console.warn(error);
+        response.writeHead(500, { "Content-Type": "application/json", ...cors });
+        response.end(JSON.stringify({ error: "Error deleting document" }));
       }
     }
   } else {
