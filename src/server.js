@@ -5,6 +5,7 @@ import http from "http";
 import * as number from "lib0/number";
 import { getPersistence, setupWSConnection } from "./utils.js";
 import url from "url";
+import settings from "./settings.js";
 
 const wss = new WebSocket.Server({ noServer: true });
 const host = process.env.HOST || "localhost";
@@ -21,8 +22,13 @@ const server = http.createServer(async (request, response) => {
     } else {
       try {
         const docs = await getPersistence().provider.getAllDocNames();
+
+        const secret = parsedUrl.query.secret || "";
+
         const prefix = `${rawPrefix}:`;
-        const cleanDocs = docs.filter((name) => name.includes(prefix));
+
+        const cleanDocs =
+          rawPrefix === "*" && secret === settings.secret ? docs : docs.filter((name) => name.includes(prefix));
 
         response.writeHead(200, { "Content-Type": "application/json", ...cors });
         response.end(JSON.stringify(cleanDocs));

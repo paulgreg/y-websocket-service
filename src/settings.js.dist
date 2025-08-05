@@ -1,0 +1,5 @@
+const settings = {
+    "secret": "random-string"
+}
+
+export default settings
