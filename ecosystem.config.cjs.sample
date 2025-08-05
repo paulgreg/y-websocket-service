@@ -7,6 +7,7 @@ module.exports = {
         HOST: '127.0.0.1',
         PORT: 6010,
         YPERSISTENCE: './data',
+        NODE_ENV: 'production',
       },
     },
   ],
