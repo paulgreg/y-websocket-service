@@ -3,4 +3,4 @@ node_modules
 tmp
 dbDir
 data
-ecosystem.config.js
+ecosystem.config.cjs
