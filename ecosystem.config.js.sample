@@ -1,0 +1,14 @@
+module.exports = {
+  apps: [
+    {
+      name: 'yjs-service',
+      script: './src/server.js',
+      env: {
+        HOST: '127.0.0.1',
+        PORT: 6010,
+        YPERSISTENCE: './data',
+      },
+    },
+  ],
+};
+
