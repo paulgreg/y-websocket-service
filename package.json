@@ -1,14 +1,11 @@
 {
-  "name": "@y/websocket-server",
+  "name": "@y/websocket-service",
   "version": "0.1.1",
   "description": "Backend for y-websocket",
   "type": "module",
   "sideEffects": false,
-  "funding": {
-    "type": "GitHub Sponsors ❤",
-    "url": "https://github.com/sponsors/dmonad"
-  },
   "scripts": {
+    "dev": "HOST=127.0.0.1 PORT=6010 YPERSISTENCE=./data npm run start",
     "start": "node ./src/server.js",
     "dist": "rm -rf dist && rollup -c && tsc",
     "lint": "standard && tsc",
