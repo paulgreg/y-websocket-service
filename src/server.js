@@ -72,6 +72,7 @@ const server = http.createServer(async (request, response) => {
                     )
                 } else {
                     try {
+                        console.log('> deleting docName=', docName)
                         await getPersistence().provider.clearDocument(docName)
                         response.writeHead(200, {
                             'Content-Type': 'application/json',
