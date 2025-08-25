@@ -62,7 +62,7 @@
   "devDependencies": {
     "@types/node": "^24.3.0",
     "@types/ws": "^8.18.1",
-    "rollup": "^4.46.2",
+    "rollup": "^4.48.1",
     "standard": "^17.1.2",
     "typescript": "^5.9.2",
     "yjs": "^13.6.27"
