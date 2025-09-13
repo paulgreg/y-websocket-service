@@ -9,3 +9,11 @@ It adds authentification via a secret parameter and a few custom HTTP methods :
 ## configuration
 
 `cp src/settings.js.dist src/settings.js` and update secret 
+
+You can define theses env var : 
+ 
+ - HOST : listening host, ex : 127.0.0.1
+ - PORT : listening port, ex : 6010
+ - YPERSISTENCE : directory to save data (optional)
+ - YBACKUP : directory to backup data to JSON periodically (optional)
+

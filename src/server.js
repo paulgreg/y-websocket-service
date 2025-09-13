@@ -6,6 +6,13 @@ import * as number from 'lib0/number'
 import { getPersistence, setupWSConnection } from './utils.js'
 import url from 'url'
 import settings from './settings.js'
+import { DAY_MS } from './date.js'
+import { backupYDoc } from './backup.js'
+
+const persistenceDir = process.env.YPERSISTENCE
+const backupDir = process.env.YBACKUP
+
+const BACKUP_DELAY = DAY_MS
 
 const wss = new WebSocket.Server({ noServer: true })
 const host = process.env.HOST || 'localhost'
@@ -120,4 +127,14 @@ server.on('upgrade', (request, socket, head) => {
 
 server.listen(port, host, () => {
     console.log(`running at '${host}' on port ${port}`)
+
+    if (typeof persistenceDir === 'string' && typeof backupDir === 'string') {
+        console.info(
+            `backing up documents to "${backupDir}" each ${BACKUP_DELAY}`
+        )
+        setInterval(
+            backupYDoc(backupDir, getPersistence().provider),
+            BACKUP_DELAY
+        )
+    }
 })

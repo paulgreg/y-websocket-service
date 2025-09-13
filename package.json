@@ -6,7 +6,7 @@
   "sideEffects": false,
   "main": "./src/server.js",
   "scripts": {
-    "dev": "HOST=127.0.0.1 PORT=6010 YPERSISTENCE=./data node .",
+    "dev": "HOST=127.0.0.1 PORT=6010 YPERSISTENCE=./data YBACKUP=./backup node .",
     "start": "NODE_ENV=production node .",
     "dist": "rm -rf dist && rollup -c && tsc",
     "lint": "standard && tsc",

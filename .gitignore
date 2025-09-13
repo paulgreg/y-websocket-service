@@ -3,5 +3,6 @@ node_modules
 tmp
 dbDir
 data
+backup
 ecosystem.config.cjs
 src/settings.js
