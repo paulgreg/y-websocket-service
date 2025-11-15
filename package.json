@@ -60,9 +60,9 @@
     "y-protocols": "^1.0.6"
   },
   "devDependencies": {
-    "@types/node": "^24.10.0",
+    "@types/node": "^24.10.1",
     "@types/ws": "^8.18.1",
-    "rollup": "^4.53.1",
+    "rollup": "^4.53.2",
     "standard": "^17.1.2",
     "typescript": "^5.9.3",
     "yjs": "^13.6.27"
