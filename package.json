@@ -56,16 +56,16 @@
     ]
   },
   "dependencies": {
-    "lib0": "^0.2.114",
-    "y-protocols": "^1.0.6"
+    "lib0": "^0.2.116",
+    "y-protocols": "^1.0.7"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
+    "@types/node": "^25.0.3",
     "@types/ws": "^8.18.1",
-    "rollup": "^4.53.2",
+    "rollup": "^4.54.0",
     "standard": "^17.1.2",
     "typescript": "^5.9.3",
-    "yjs": "^13.6.27"
+    "yjs": "^13.6.28"
   },
   "peerDependencies": {
     "yjs": "^13.5.6"
