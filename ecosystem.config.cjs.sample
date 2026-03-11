@@ -3,6 +3,7 @@ module.exports = {
     {
       name: 'yjs-service',
       script: './src/server.js',
+      max_memory_restart: '192M',
       env: {
         HOST: '127.0.0.1',
         PORT: 6010,
