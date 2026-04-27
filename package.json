@@ -8,10 +8,8 @@
   "scripts": {
     "dev": "HOST=127.0.0.1 PORT=6010 YPERSISTENCE=./data YBACKUP=./backup node .",
     "start": "NODE_ENV=production node .",
-    "dist": "rm -rf dist && rollup -c && tsc",
-    "lint": "standard && tsc",
-    "test": "npm run lint",
-    "preversion": "npm run lint && npm run dist && test -e dist/src/server.d.ts && test -e dist/server.cjs"
+    "lint": "standard",
+    "test": "npm run lint"
   },
   "bin": {
     "y-websocket-server": "src/server.js",
@@ -60,18 +58,15 @@
     "y-protocols": "^1.0.7"
   },
   "devDependencies": {
-    "@types/node": "^25.6.0",
-    "@types/ws": "^8.18.1",
     "rollup": "^4.60.2",
     "standard": "^17.1.2",
-    "typescript": "^6.0.3",
     "yjs": "^13.6.30"
   },
   "peerDependencies": {
     "yjs": "^13.5.6"
   },
   "optionalDependencies": {
-    "ws": "^6.2.3",
+    "ws": "^8.20.0",
     "y-leveldb": "^0.2.0"
   },
   "engines": {

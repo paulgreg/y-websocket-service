@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import WebSocket from 'ws'
+import { WebSocketServer } from 'ws'
 import http from 'node:http'
 import * as number from 'lib0/number'
 import { getPersistence, setupWSConnection } from './utils.js'
@@ -16,7 +16,7 @@ const BACKUP_DELAY = DAY_MS
 
 const isDev = process.env.NODE_ENV !== 'production'
 
-const wss = new WebSocket.Server({ noServer: true })
+const wss = new WebSocketServer({ noServer: true })
 const host = process.env.HOST || 'localhost'
 const port = number.parseInt(process.env.PORT || '1234')
 const cors = isDev ? { 'Access-Control-Allow-Origin': '*' } : {}
