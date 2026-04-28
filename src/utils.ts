@@ -59,8 +59,17 @@ if (typeof persistenceDir === 'string') {
                             Y.applyUpdate(ydoc, persistedUpdates)
                         }
                     }
-                    ydoc.on('update', (update) => {
+                    // Store reference to cleanup function
+                    const updateHandler = (update) => {
                         ldb.storeUpdate(docName, update)
+                    }
+                    ydoc.on('update', updateHandler)
+                    // Store cleanup function on ydoc for later removal
+                    if (!ydoc._persistenceCleanup) {
+                        ydoc._persistenceCleanup = []
+                    }
+                    ydoc._persistenceCleanup.push(() => {
+                        ydoc.off('update', updateHandler)
                     })
                 } catch (error) {
                     console.error(
@@ -70,7 +79,13 @@ if (typeof persistenceDir === 'string') {
                     )
                 }
             },
-            writeState: async (_docName, _ydoc) => {},
+            writeState: async (docName, ydoc) => {
+                // Clean up event listeners before destroying
+                if (ydoc._persistenceCleanup) {
+                    ydoc._persistenceCleanup.forEach(cleanup => cleanup())
+                    delete ydoc._persistenceCleanup
+                }
+            },
         }
     } catch (error) {
         console.error('Failed to initialize persistence:', error)
@@ -98,6 +113,7 @@ export class WSSharedDoc extends Y.Doc {
     conns: Map<any, Set<number>>
     awareness: any
     name: string
+    _cleanup?: () => void
 
     constructor(name: string) {
         super({ gc: gcEnabled })
@@ -138,17 +154,32 @@ export class WSSharedDoc extends Y.Doc {
             })
         }
         this.awareness.on('update', awarenessChangeHandler)
-        this.on('update', (update: any, _origin: any, doc: any) => {
+        
+        // Store references to event listeners for cleanup
+        const syncUpdateHandler = (update: any, _origin: any, doc: any) => {
             const encoder = encoding.createEncoder()
             encoding.writeVarUint(encoder, 0)
             syncProtocol.writeUpdate(encoder, update)
             const message = encoding.toUint8Array(encoder)
             this.conns.forEach((_, conn) => send(this, conn, message))
-        })
+        }
+        this.on('update', syncUpdateHandler)
+        
+        let callbackUpdateHandler: ((_update: any, _origin: any, doc: any) => void) | null = null
         if (isCallbackSet) {
-            this.on('update', (_update: any, _origin: any, doc: any) => {
+            callbackUpdateHandler = (_update: any, _origin: any, doc: any) => {
                 debouncer(() => callbackHandler(doc))
-            })
+            }
+            this.on('update', callbackUpdateHandler)
+        }
+        
+        // Store cleanup functions
+        this._cleanup = () => {
+            this.awareness.off('update', awarenessChangeHandler)
+            this.off('update', syncUpdateHandler)
+            if (callbackUpdateHandler) {
+                this.off('update', callbackUpdateHandler)
+            }
         }
     }
 }
@@ -317,10 +348,14 @@ export const setupWSConnection = (
                     break
                 }
             }
-        } catch (err) {
-            console.error(err)
-            doc.destroy()
-        }
+            } catch (err) {
+                console.error(err)
+                if (doc._cleanup) {
+                    doc._cleanup()
+                }
+                doc.destroy()
+                docs.delete(doc.name)
+            }
     }
 
     conn.on('message', messageListener)
@@ -397,12 +432,25 @@ const closeConn = (doc: WSSharedDoc, conn: any): void => {
         if (doc.conns.size === 0 && persistence !== null) {
             // if persisted, we store state and destroy ydocument
             persistence.writeState(doc.name, doc).then(() => {
+                if (doc._cleanup) {
+                    doc._cleanup()
+                }
                 doc.destroy()
                 docs.delete(doc.name)
                 if (process.env.DEBUG) {
                     console.debug(`Document ${doc.name} removed from memory, ${docs.size} documents remaining`)
                 }
             })
+        } else if (doc.conns.size === 0) {
+            // No persistence, but still clean up if no connections
+            if (doc._cleanup) {
+                doc._cleanup()
+            }
+            doc.destroy()
+            docs.delete(doc.name)
+            if (process.env.DEBUG) {
+                console.debug(`Document ${doc.name} removed from memory (no persistence), ${docs.size} documents remaining`)
+            }
         }
     }
     try {
