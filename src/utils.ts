@@ -27,6 +27,8 @@ const wsReadyStateOpen = 1
 // const wsReadyStateClosing = 2
 // const wsReadyStateClosed = 3
 
+// disable gc when using snapshots!
+const gcEnabled = process.env.GC !== 'false' && process.env.GC !== '0'
 const persistenceDir = process.env.YPERSISTENCE
 
 /**
@@ -98,7 +100,7 @@ export class WSSharedDoc extends Y.Doc {
     name: string
 
     constructor(name: string) {
-        super()
+        super({ gc: gcEnabled })
         this.name = name
         this.conns = new Map()
         this.awareness = new awarenessProtocol.Awareness(this)
@@ -153,6 +155,18 @@ export class WSSharedDoc extends Y.Doc {
 
 export const docs = new Map<string, WSSharedDoc>()
 
+/**
+ * Log memory statistics for debugging
+ */
+export const logMemoryStats = (): void => {
+    if (process.env.DEBUG) {
+        const memoryUsage = process.memoryUsage()
+        console.debug(`Memory stats - Documents: ${docs.size}, ` +
+                      `Heap: ${(memoryUsage.heapUsed / 1024 / 1024).toFixed(2)}MB used, ` +
+                      `${(memoryUsage.heapTotal / 1024 / 1024).toFixed(2)}MB total`)
+    }
+}
+
 export const getYDoc = (
     req: any,
     { docName }: { docName?: string } = {}
@@ -204,6 +218,11 @@ export const getYDoc = (
             persistence.bindState(docName, doc)
         }
         docs.set(docName, doc)
+        if (process.env.DEBUG) {
+            console.debug(`Document ${docName} created, total documents in memory: ${docs.size}`)
+        }
+    } else if (process.env.DEBUG) {
+        console.debug(`Document ${docName} reused, total documents in memory: ${docs.size}`)
     }
     return docs.get(docName) as WSSharedDoc
 }
@@ -239,6 +258,9 @@ export const setupWSConnection = (
     }
 
     const doc = getYDoc(req, { docName })
+    if (process.env.DEBUG) {
+        console.debug(`New connection for document ${doc.name}, total connections: ${doc.conns.size + 1}`)
+    }
 
     // Add connection to doc.conns
     doc.conns.set(conn, new Set())
@@ -324,6 +346,9 @@ export const setupWSConnection = (
     }, 30000)
 
     conn.on('close', () => {
+        if (process.env.DEBUG) {
+            console.debug(`Connection closed for document ${doc.name}, remaining connections: ${doc.conns.size}`)
+        }
         closeConn(doc, conn)
         clearInterval(pingInterval)
     })
@@ -373,8 +398,17 @@ const closeConn = (doc: WSSharedDoc, conn: any): void => {
             // if persisted, we store state and destroy ydocument
             persistence.writeState(doc.name, doc).then(() => {
                 doc.destroy()
+                docs.delete(doc.name)
+                if (process.env.DEBUG) {
+                    console.debug(`Document ${doc.name} removed from memory, ${docs.size} documents remaining`)
+                }
             })
         }
+    }
+    try {
+        conn.close()
+    } catch (e) {
+        console.error('Error closing connection:', e)
     }
 }
 

@@ -3,9 +3,9 @@
 import { WebSocketServer } from 'ws'
 import http from 'node:http'
 import * as number from 'lib0/number'
-import { getPersistence, setupWSConnection } from './utils.js'
+import { getPersistence, setupWSConnection, logMemoryStats } from './utils.js'
 import settings from './settings.js'
-import { DAY_MS } from './date.js'
+import { DAY_MS, MINUTE_MS } from './date.js'
 import { backupYDoc } from './backup.js'
 
 const persistenceDir = process.env.YPERSISTENCE
@@ -146,6 +146,12 @@ if (backupDir) {
         backupYDoc(backupDir, (getPersistence() as Persistence).provider),
         BACKUP_DELAY
     )
+}
+
+// Periodic memory stats logging
+if (process.env.DEBUG) {
+    console.info('Memory stats logging enabled (every minute)')
+    setInterval(logMemoryStats, MINUTE_MS)
 }
 
 server.listen(port, host, () => {
