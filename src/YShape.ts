@@ -6,7 +6,7 @@ import * as Y from 'yjs'
  * Don't use it in production!
  * See https://github.com/yjs/yjs/issues/563
  */
-export function guessType (abstractType) {
+export function guessType (abstractType: any): any {
   if (abstractType.constructor === Y.Array) {
     return Y.Array
   }
@@ -39,7 +39,7 @@ export function guessType (abstractType) {
   return Y.AbstractType
 }
 
-export function getYTypeName (value) {
+export function getYTypeName (value: any): string {
   if (value instanceof Y.Doc) {
     return 'YDoc'
   }
@@ -65,31 +65,31 @@ export function getYTypeName (value) {
   throw new Error('Unknown Yjs type')
 }
 
-export function isYDoc (value) {
+export function isYDoc (value: any): boolean {
   return value instanceof Y.Doc
 }
 
-export function isYMap (value) {
+export function isYMap (value: any): boolean {
   return value instanceof Y.Map
 }
 
-export function isYArray (value) {
+export function isYArray (value: any): boolean {
   return value instanceof Y.Array
 }
 
-export function isYText (value) {
+export function isYText (value: any): boolean {
   return value instanceof Y.Text
 }
 
-export function isYXmlElement (value) {
+export function isYXmlElement (value: any): boolean {
   return value instanceof Y.XmlElement
 }
 
-export function isYXmlFragment (value) {
+export function isYXmlFragment (value: any): boolean {
   return value instanceof Y.XmlFragment
 }
 
-export function isYXmlText (value) {
+export function isYXmlText (value: any): boolean {
   return value instanceof Y.XmlText
 }
 
@@ -100,7 +100,7 @@ export function isYXmlText (value) {
  *
  * See also {@link isYShape}
  */
-export function isYAbstractType (value) {
+export function isYAbstractType (value: any): boolean {
   return value instanceof Y.AbstractType
 }
 
@@ -109,30 +109,30 @@ export function isYAbstractType (value) {
  *
  * See also {@link isYAbstractType}
  */
-export function isYShape (value) {
+export function isYShape (value: any): boolean {
   return isYDoc(value) || isYAbstractType(value)
 }
 
-export function parseYShape (value, { showDelta } = { showDelta: true }) {
+export function parseYShape (value: any, { showDelta } = { showDelta: true }): any {
   if (isYDoc(value)) {
     const yDoc = value
     const keys = Array.from(yDoc.share.keys())
-    const obj = keys.reduce((acc, key) => {
-      const value = yDoc.get(key)
+    const obj: any = {}
+    keys.forEach((key: any) => {
+      const value = yDoc.get(key as string)
       const type = guessType(value)
-      acc[key] = yDoc.get(key, type)
-      return acc
-    }, {})
+      obj[key as string] = yDoc.get(key as string, type)
+    })
     return obj
   }
 
   if (isYMap(value)) {
     const yMap = value
     const keys = Array.from(yMap.keys())
-    const obj = keys.reduce((acc, key) => {
-      acc[key] = yMap.get(key)
-      return acc
-    }, {})
+    const obj: any = {}
+    keys.forEach((key: any) => {
+      obj[key as string] = yMap.get(key)
+    })
     return obj
   }
 
@@ -173,7 +173,7 @@ export function parseYShape (value, { showDelta } = { showDelta: true }) {
 
 export const NATIVE_UNIQ_IDENTIFIER = '$yjs:internal:native$'
 
-export function yShapeToJSON (value) {
+export function yShapeToJSON (value: any): any {
   if (!isYShape(value)) {
     return value
   }
@@ -182,25 +182,25 @@ export function yShapeToJSON (value) {
   if (isYDoc(value)) {
     const yDoc = value
     const keys = Array.from(yDoc.share.keys())
-    const obj = keys.reduce((acc, key) => {
-      const val = yDoc.get(key)
+    const obj: any = {}
+    keys.forEach((key: any) => {
+      const val = yDoc.get(key as string)
       const type = guessType(val)
-      acc[key] = yShapeToJSON(yDoc.get(key, type))
-      return acc
-    }, {})
+      obj[key as string] = yShapeToJSON(yDoc.get(key as string, type))
+    })
     return obj
   }
   if (isYMap(value)) {
     const yMap = value
     const keys = Array.from(yMap.keys())
-    const obj = keys.reduce((acc, key) => {
-      acc[key] = yShapeToJSON(yMap.get(key))
-      return acc
-    }, {})
+    const obj: any = {}
+    keys.forEach((key: any) => {
+      obj[key as string] = yShapeToJSON(yMap.get(key))
+    })
     return obj
   }
   if (isYArray(value)) {
-    return value.toArray().map((value) => yShapeToJSON(value))
+    return value.toArray().map((value: any) => yShapeToJSON(value))
   }
   if (isYText(value)) {
     return value.toJSON()
