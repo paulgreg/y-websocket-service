@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'yjs-service',
-      script: './src/server.js',
+      script: './dist/server.js',
       max_memory_restart: '192M',
       env: {
         HOST: '127.0.0.1',

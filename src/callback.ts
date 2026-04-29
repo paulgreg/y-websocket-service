@@ -1,19 +1,22 @@
 import http from 'node:http'
+import * as number from 'lib0/number'
 
 const CALLBACK_URL = process.env.CALLBACK_URL
     ? new URL(process.env.CALLBACK_URL)
     : null
-const CALLBACK_TIMEOUT = Number.parseInt(process.env.CALLBACK_TIMEOUT || '5000')
+
+const CALLBACK_TIMEOUT = number.parseInt(process.env.CALLBACK_TIMEOUT || '5000')
+
 const CALLBACK_OBJECTS = process.env.CALLBACK_OBJECTS
     ? JSON.parse(process.env.CALLBACK_OBJECTS)
     : {}
 
 export const isCallbackSet = !!CALLBACK_URL
 
-/**
- * @param {import('./utils.js').WSSharedDoc} doc
+/*
+ * @param {import('./utils.ts').WSSharedDoc} doc
  */
-export const callbackHandler = (doc) => {
+export const callbackHandler = (doc: any): void => {
     const room = doc.name
     const dataToSend = {
         room,
@@ -34,12 +37,7 @@ export const callbackHandler = (doc) => {
     CALLBACK_URL && callbackRequest(CALLBACK_URL, CALLBACK_TIMEOUT, dataToSend)
 }
 
-/**
- * @param {URL} url
- * @param {number} timeout
- * @param {Object} data
- */
-const callbackRequest = (url, timeout, data) => {
+const callbackRequest = (url: URL, timeout: number, data: any): void => {
     data = JSON.stringify(data)
     const options = {
         hostname: url.hostname,
@@ -55,22 +53,17 @@ const callbackRequest = (url, timeout, data) => {
     const req = http.request(options)
     req.on('timeout', () => {
         console.warn('Callback request timed out.')
-        req.abort()
+        req.destroy()
     })
     req.on('error', (e) => {
         console.error('Callback request error.', e)
-        req.abort()
+        req.destroy()
     })
     req.write(data)
     req.end()
 }
 
-/**
- * @param {string} objName
- * @param {string} objType
- * @param {import('./utils.js').WSSharedDoc} doc
- */
-const getContent = (objName, objType, doc) => {
+const getContent = (objName: string, objType: string, doc: any): any => {
     switch (objType) {
         case 'Array':
             return doc.getArray(objName)

@@ -1,9 +1,11 @@
+#!/usr/bin/env node
+
 import { WebSocketServer } from 'ws'
 import http from 'node:http'
-import { getPersistence, setupWSConnection } from './utils.js'
-import url from 'node:url'
+import * as number from 'lib0/number'
+import { getPersistence, setupWSConnection, logMemoryStats } from './utils.js'
 import settings from './settings.js'
-import { DAY_MS } from './date.js'
+import { DAY_MS, MINUTE_MS } from './date.js'
 import { backupYDoc } from './backup.js'
 
 const persistenceDir = process.env.YPERSISTENCE
@@ -15,12 +17,15 @@ const isDev = process.env.NODE_ENV !== 'production'
 
 const wss = new WebSocketServer({ noServer: true })
 const host = process.env.HOST || 'localhost'
-const port = Number.parseInt(process.env.PORT || '1234')
+const port = number.parseInt(process.env.PORT || '1234')
 const cors = isDev ? { 'Access-Control-Allow-Origin': '*' } : {}
 
 const server = http.createServer(async (request, response) => {
-    const parsedUrl = url.parse(request?.url ?? '', true)
-    const secret = parsedUrl.query.secret || ''
+    const requestUrl = new URL(
+        request.url ?? '',
+        `http://${request.headers.host || 'localhost'}`
+    )
+    const secret = requestUrl.searchParams.get('secret') || ''
     const badSecret = secret !== settings.secret
     if (badSecret) {
         response.writeHead(401, { 'Content-Type': 'application/json', ...cors })
@@ -28,7 +33,7 @@ const server = http.createServer(async (request, response) => {
     } else {
         if (request.method === 'GET') {
             if (request.url?.startsWith('/list')) {
-                const rawPrefix = parsedUrl.query.prefix || ''
+                const rawPrefix = requestUrl.searchParams.get('prefix') || ''
                 const emptyRawPrefix = !rawPrefix
                 if (emptyRawPrefix) {
                     response.writeHead(400, {
@@ -41,7 +46,9 @@ const server = http.createServer(async (request, response) => {
                 } else {
                     try {
                         const docs =
-                            await getPersistence()?.provider.getAllDocNames()
+                            (await (
+                                getPersistence() as Persistence | null
+                            )?.provider.getAllDocNames()) ?? []
                         const prefix = `${rawPrefix}:`
                         const cleanDocs =
                             rawPrefix === '*'
@@ -51,7 +58,7 @@ const server = http.createServer(async (request, response) => {
                             'Content-Type': 'application/json',
                             ...cors,
                         })
-                        response.end(JSON.stringify(cleanDocs))
+                        response.end(JSON.stringify(cleanDocs ?? []))
                     } catch (error) {
                         console.warn(error)
                         response.writeHead(500, {
@@ -59,14 +66,12 @@ const server = http.createServer(async (request, response) => {
                             ...cors,
                         })
                         response.end(
-                            JSON.stringify({
-                                error: 'Error retrieving document names',
-                            })
+                            JSON.stringify({ error: 'Internal server error' })
                         )
                     }
                 }
-            } else if (request.url?.startsWith('/del')) {
-                const docName = parsedUrl.query.doc || ''
+            } else if (request.url?.startsWith('/delete')) {
+                const docName = requestUrl.searchParams.get('doc')
                 const emptyDocName = !docName
                 if (emptyDocName) {
                     response.writeHead(400, {
@@ -78,13 +83,18 @@ const server = http.createServer(async (request, response) => {
                     )
                 } else {
                     try {
-                        console.log('> deleting docName=', docName)
-                        await getPersistence()?.provider.clearDocument(docName)
+                        console.info('> deleting docName=', docName)
+                        const docNameStr = Array.isArray(docName)
+                            ? docName[0]
+                            : docName
+                        await (
+                            getPersistence() as Persistence | null
+                        )?.provider.clearDocument(docNameStr)
                         response.writeHead(200, {
                             'Content-Type': 'application/json',
                             ...cors,
                         })
-                        response.end(JSON.stringify({ status: 'deleted' }))
+                        response.end(JSON.stringify({ success: true }))
                     } catch (error) {
                         console.warn(error)
                         response.writeHead(500, {
@@ -92,49 +102,58 @@ const server = http.createServer(async (request, response) => {
                             ...cors,
                         })
                         response.end(
-                            JSON.stringify({ error: 'Error deleting document' })
+                            JSON.stringify({ error: 'Internal server error' })
                         )
                     }
                 }
+            } else {
+                response.writeHead(404, {
+                    'Content-Type': 'application/json',
+                    ...cors,
+                })
+                response.end(JSON.stringify({ error: 'Not found' }))
             }
         } else {
-            response.writeHead(200, { 'Content-Type': 'text/plain' })
-            response.end('okay')
+            response.writeHead(405, {
+                'Content-Type': 'application/json',
+                ...cors,
+            })
+            response.end(JSON.stringify({ error: 'Method not allowed' }))
         }
     }
 })
 
-wss.on('connection', setupWSConnection)
-
 server.on('upgrade', (request, socket, head) => {
-    const parsedUrl = url.parse(request?.url ?? '', true)
-    const secret = parsedUrl.query.secret || ''
+    const requestUrl = new URL(
+        request.url ?? '',
+        `http://${request.headers.host || 'localhost'}`
+    )
+    const secret = requestUrl.searchParams.get('secret') || ''
     const badSecret = secret !== settings.secret
     if (badSecret) {
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n')
-        socket.end()
-    } else {
-        wss.handleUpgrade(
-            request,
-            socket,
-            head,
-            /** @param {any} ws */ (ws) => {
-                wss.emit('connection', ws, request)
-            }
-        )
+        socket.destroy()
+        return
     }
+    wss.handleUpgrade(request, socket, head, (ws) => {
+        setupWSConnection(ws, request, {})
+    })
 })
 
-server.listen(port, host, () => {
-    console.log(`running at '${host}' on port ${port}`)
+if (backupDir) {
+    console.info(`backing up documents to "${backupDir}" each ${BACKUP_DELAY}`)
+    setInterval(
+        backupYDoc(backupDir, (getPersistence() as Persistence).provider),
+        BACKUP_DELAY
+    )
+}
 
-    if (typeof persistenceDir === 'string' && typeof backupDir === 'string') {
-        console.info(
-            `backing up documents to "${backupDir}" each ${BACKUP_DELAY}`
-        )
-        setInterval(
-            backupYDoc(backupDir, getPersistence().provider),
-            BACKUP_DELAY
-        )
-    }
+// Periodic memory stats logging
+if (process.env.DEBUG) {
+    console.info('Memory stats logging enabled (every minute)')
+    setInterval(logMemoryStats, MINUTE_MS)
+}
+
+server.listen(port, host, () => {
+    console.log(`Server running at http://${host}:${port}/`)
 })

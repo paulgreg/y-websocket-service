@@ -5,4 +5,4 @@ dbDir
 data
 backup
 ecosystem.config.cjs
-src/settings.js
+src/settings.ts

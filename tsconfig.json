@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "target": "es2024",
+        "module": "Node16",
+        "lib": ["es2018", "dom"],
+        "declaration": true,
+        "outDir": "./dist",
+        "rootDir": "./src",
+        "strict": true,
+        "noImplicitAny": false,
+        "emitDeclarationOnly": false,
+        "types": ["vitest/globals"],
+        "moduleResolution": "node16",
+        "esModuleInterop": true
+    },
+    "include": ["./src/**/*"]
+}

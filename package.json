@@ -3,18 +3,33 @@
   "version": "0.1.1",
   "description": "Backend for y-websocket",
   "type": "module",
-  "main": "./src/server.js",
+  "main": "./src/server.ts",
   "scripts": {
-    "dev": "HOST=127.0.0.1 PORT=6010 YPERSISTENCE=./data YBACKUP=./backup node .",
-    "start": "NODE_ENV=production node .",
+    "dev": "DEBUG=1 HOST=127.0.0.1 PORT=6010 YPERSISTENCE=./data YBACKUP=./backup tsx .",
+    "build": "tsc",
+    "start": "NODE_ENV=production node dist/server.js",
+    "lint": "standard",
+    "typecheck": "tsc --noEmit",
     "test": "vitest"
   },
   "license": "MIT",
+  "standard": {
+    "ignore": [
+      "/dist",
+      "/node_modules"
+    ]
+  },
   "dependencies": {
     "lib0": "^0.2.117",
     "y-protocols": "^1.0.7"
   },
   "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/ws": "^8.18.1",
+    "rollup": "^4.60.2",
+    "standard": "^17.1.2",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.5",
     "yjs": "^13.6.30"
   },
