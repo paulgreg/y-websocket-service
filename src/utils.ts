@@ -31,6 +31,8 @@ const wsReadyStateOpen = 1
 const gcEnabled = process.env.GC !== 'false' && process.env.GC !== '0'
 const persistenceDir = process.env.YPERSISTENCE
 
+console.info('gcEnabled:', gcEnabled)
+
 /**
  * @type {{bindState: function(string,WSSharedDoc):void, writeState:function(string,WSSharedDoc):Promise<any>, provider: any}|null}
  */
