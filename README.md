@@ -16,5 +16,5 @@ You can define theses env var :
  - PORT : listening port, ex : 6010
  - YPERSISTENCE : directory to save data (optional)
  - YBACKUP : directory to backup data to JSON periodically (optional)
- - DEBUG : to display debug messages
+ - DEBUG : to display debug messages ('info' or 'debug' for more details)
 

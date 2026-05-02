@@ -82,7 +82,7 @@ if (typeof persistenceDir === 'string') {
             writeState: async (docName, ydoc) => {
                 // Clean up event listeners before destroying
                 if (ydoc._persistenceCleanup) {
-                    ydoc._persistenceCleanup.forEach(cleanup => cleanup())
+                    ydoc._persistenceCleanup.forEach((cleanup) => cleanup())
                     delete ydoc._persistenceCleanup
                 }
             },
@@ -154,7 +154,7 @@ export class WSSharedDoc extends Y.Doc {
             })
         }
         this.awareness.on('update', awarenessChangeHandler)
-        
+
         // Store references to event listeners for cleanup
         const syncUpdateHandler = (update: any, _origin: any, doc: any) => {
             const encoder = encoding.createEncoder()
@@ -164,15 +164,17 @@ export class WSSharedDoc extends Y.Doc {
             this.conns.forEach((_, conn) => send(this, conn, message))
         }
         this.on('update', syncUpdateHandler)
-        
-        let callbackUpdateHandler: ((_update: any, _origin: any, doc: any) => void) | null = null
+
+        let callbackUpdateHandler:
+            | ((_update: any, _origin: any, doc: any) => void)
+            | null = null
         if (isCallbackSet) {
             callbackUpdateHandler = (_update: any, _origin: any, doc: any) => {
                 debouncer(() => callbackHandler(doc))
             }
             this.on('update', callbackUpdateHandler)
         }
-        
+
         // Store cleanup functions
         this._cleanup = () => {
             this.awareness.off('update', awarenessChangeHandler)
@@ -192,9 +194,27 @@ export const docs = new Map<string, WSSharedDoc>()
 export const logMemoryStats = (): void => {
     if (process.env.DEBUG) {
         const memoryUsage = process.memoryUsage()
-        console.debug(`Memory stats - Documents: ${docs.size}, ` +
-                      `Heap: ${(memoryUsage.heapUsed / 1024 / 1024).toFixed(2)}MB used, ` +
-                      `${(memoryUsage.heapTotal / 1024 / 1024).toFixed(2)}MB total`)
+        console.debug(
+            `Memory stats - Documents: ${docs.size}, ` +
+                `Heap: ${(memoryUsage.heapUsed / 1024 / 1024).toFixed(
+                    2
+                )}MB used, ` +
+                `${(memoryUsage.heapTotal / 1024 / 1024).toFixed(2)}MB total`
+        )
+        if (docs.size > 0) {
+            const docNames = Array.from(docs.keys())
+            console.debug(`Open documents: ${docNames.join(', ')}`)
+        }
+        if (persistence) {
+            persistence.provider
+                .getAllDocNames()
+                .then((allDocNames: string[]) => {
+                    console.debug(
+                        `Total persisted documents: ${allDocNames.length}`
+                    )
+                })
+                .catch(console.error)
+        }
     }
 }
 
@@ -250,10 +270,14 @@ export const getYDoc = (
         }
         docs.set(docName, doc)
         if (process.env.DEBUG) {
-            console.debug(`Document ${docName} created, total documents in memory: ${docs.size}`)
+            console.debug(
+                `Document ${docName} created, total documents in memory: ${docs.size}`
+            )
         }
     } else if (process.env.DEBUG) {
-        console.debug(`Document ${docName} reused, total documents in memory: ${docs.size}`)
+        console.debug(
+            `Document ${docName} reused, total documents in memory: ${docs.size}`
+        )
     }
     return docs.get(docName) as WSSharedDoc
 }
@@ -290,7 +314,11 @@ export const setupWSConnection = (
 
     const doc = getYDoc(req, { docName })
     if (process.env.DEBUG) {
-        console.debug(`New connection for document ${doc.name}, total connections: ${doc.conns.size + 1}`)
+        console.debug(
+            `New connection for document ${doc.name}, total connections: ${
+                doc.conns.size + 1
+            }`
+        )
     }
 
     // Add connection to doc.conns
@@ -339,7 +367,7 @@ export const setupWSConnection = (
                         decoding.readVarUint8Array(decoder),
                         conn
                     )
-                    if (process.env.DEBUG) {
+                    if (process.env.DEBUG === 'debug') {
                         const awarenessDuration = Date.now() - awarenessStart
                         console.log(
                             `Awareness update processed in ${awarenessDuration}ms`
@@ -348,14 +376,14 @@ export const setupWSConnection = (
                     break
                 }
             }
-            } catch (err) {
-                console.error(err)
-                if (doc._cleanup) {
-                    doc._cleanup()
-                }
-                doc.destroy()
-                docs.delete(doc.name)
+        } catch (err) {
+            console.error(err)
+            if (doc._cleanup) {
+                doc._cleanup()
             }
+            doc.destroy()
+            docs.delete(doc.name)
+        }
     }
 
     conn.on('message', messageListener)
@@ -382,7 +410,9 @@ export const setupWSConnection = (
 
     conn.on('close', () => {
         if (process.env.DEBUG) {
-            console.debug(`Connection closed for document ${doc.name}, remaining connections: ${doc.conns.size}`)
+            console.debug(
+                `Connection closed for document ${doc.name}, remaining connections: ${doc.conns.size}`
+            )
         }
         closeConn(doc, conn)
         clearInterval(pingInterval)
@@ -438,7 +468,9 @@ const closeConn = (doc: WSSharedDoc, conn: any): void => {
                 doc.destroy()
                 docs.delete(doc.name)
                 if (process.env.DEBUG) {
-                    console.debug(`Document ${doc.name} removed from memory, ${docs.size} documents remaining`)
+                    console.debug(
+                        `Document ${doc.name} removed from memory, ${docs.size} documents remaining`
+                    )
                 }
             })
         } else if (doc.conns.size === 0) {
@@ -449,7 +481,9 @@ const closeConn = (doc: WSSharedDoc, conn: any): void => {
             doc.destroy()
             docs.delete(doc.name)
             if (process.env.DEBUG) {
-                console.debug(`Document ${doc.name} removed from memory (no persistence), ${docs.size} documents remaining`)
+                console.debug(
+                    `Document ${doc.name} removed from memory (no persistence), ${docs.size} documents remaining`
+                )
             }
         }
     }
@@ -473,7 +507,7 @@ const send = (doc: WSSharedDoc, conn: any, m: Uint8Array): void => {
         const sendStart = Date.now()
         conn.send(m, {}, (err) => {
             if (err === null) {
-                if (process.env.DEBUG) {
+                if (process.env.DEBUG === 'debug') {
                     console.log(
                         `Message sent in ${Date.now() - sendStart}ms, ${
                             m.length
